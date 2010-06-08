@@ -1,4 +1,5 @@
-;;; MIX game server
+;;; mix.el --- MIX game server
+;;
 
 ;; Settings
 
@@ -66,6 +67,9 @@
 (defvar mix-client-list '()
   "List of connected clients.")
 
+(defvar mix-timer nil
+  "The handle for the registration timer.")
+
 (defun rem-from-list (list el)
   "Opposite of add-to-list."
   (set list (remq el (symbol-value list))))
@@ -82,12 +86,19 @@
    :server   t
    :family   'ipv4
    :filter   'mix-filter)
-  (mix-ping-start))
+  (mix-ping-start)
+  (run-at-time 0 300 'mix-register))
 
 (defun mix-stop ()
   "Stop the MIX server."
   (interactive)
-  (if (process-status "mix") (delete-process "mix"))
+  (when mix-timer
+    (cancel-timer mix-timer)
+    (setq mix-timer nil))
+  (when (process-status "mix")
+    (delete-process "mix"))
+  (dolist (client mix-client-list)
+    (delete-process client))
   (mix-ping-stop))
 
 (defun mix-sentinel (proc stat)
@@ -107,7 +118,8 @@
 (defun mix-datalog (data)
   "Write the packet to the data log."
   (with-current-buffer (get-buffer-create "*mix-data*")
-    (insert data)))
+    (goto-char (point-max))
+    (insert data "\n")))
 
 (defun mix-log (string)
   "Write the status to the log."
