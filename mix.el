@@ -8,7 +8,7 @@
 (defvar mix-master-port 21999
   "Port of the MIX master server.")
 
-(defvar mix-id (format "9000%04X" (random (expt 2 16)))
+(defvar mix-id (format "%04X%04X" (random (expt 2 16)) (random (expt 2 16)))
   "Unique ID for this server.")
 
 (defvar mix-port 33335
@@ -17,26 +17,49 @@
 (defvar mix-name "Emacs-MIX"
   "Name of the MIX server.")
 
-(defvar mix-player-count 0
-  "Current player count.")
-
-;; MIX master server functions
+;; MIX master server functions (mix-register)
 
 (defun mix-build-register-message ()
   "Generate packet for registering with the MIX master server."
   (format "!version=41252,nump=%d,id=%s,port=%d,name=%s\0"
-	  mix-player-count mix-id mix-port mix-name))
+	  (length mix-client-list) mix-id mix-port mix-name))
 
 (defun mix-register ()
   "Register this MIX server with the MIX master."
   (process-send-string
    (make-network-process
-    :name     "mm-report"
+    :name     "mix-master-report"
     :host     mix-master-host
     :service  mix-master-port
     :family   'ipv4
     :type     'datagram)
-   (mix-build-register-message)))
+   (mix-build-register-message))
+  (if (process-status "mix-master-report")
+      (delete-process "mix-master-report")))
+
+;; Ping handler
+
+(defun mix-ping-start ()
+  "Start the process that handles pings."
+  (interactive)
+  (make-network-process
+   :name     "mix-ping"
+   :service  mix-port
+   :type     'datagram
+   :server   t
+   :family   'ipv4
+   :filter   'mix-ping))
+
+(defun mix-ping (proc data)
+  "Respond with standard ping reply."
+  (process-send-string proc
+		       (format "#name=%s //ID:%s //TM:%X //US:0.3.5\0"
+			       mix-name mix-id (float-time))))
+
+(defun mix-ping-stop ()
+  "Stop the MIX ping server."
+  (interactive)
+  (if (process-status "mix-ping") (delete-process "mix-ping")))
 
 ;; Echo client functions
 
@@ -48,6 +71,8 @@
   (set list (remq el (symbol-value list))))
 
 (defun mix-start ()
+  "Start the MIX server."
+  (interactive)
   (mix-stop)
   (setq mix-client-list '())
   (make-network-process
@@ -56,12 +81,14 @@
    :sentinel 'mix-sentinel
    :server   t
    :family   'ipv4
-   :filter   'mix-filter))
+   :filter   'mix-filter)
+  (mix-ping-start))
 
 (defun mix-stop ()
-  "Stop the emacs web server."
+  "Stop the MIX server."
   (interactive)
-  (if (process-status "mix") (delete-process "mix")))
+  (if (process-status "mix") (delete-process "mix"))
+  (mix-ping-stop))
 
 (defun mix-sentinel (proc stat)
   "Mix server's sentinel: called when status changes."
