@@ -1,7 +1,14 @@
 ;;; mix.el --- MIX game server
 ;;
+;; This MIX server register with the master MIX server to act as a
+;; public server. You will need to port forward both TCP and UDP on
+;; the port your server runs on for it to work properly.
+;;
+;;; TODO
+;; * mix-unregister on mix-stop
+;; * Figure out the meaning of the US and ID ping fields
 
-;; Settings
+;; Configuration
 
 (defvar mix-master-host "63.197.64.78"
   "Host address of the MIX master server.")
