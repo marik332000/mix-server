@@ -112,7 +112,8 @@
 
 (defun mix-sentinel (proc stat)
   "Mix server's sentinel: called when status changes."
-  (mix-log (concat "mix: (" (symbol-name (process-status proc)) ") " stat))
+  (mix-log (concat "mix: " (format-time-string "%Y %b %d %H:%M:%S")
+		   " (" (symbol-name (process-status proc)) ") " stat))
   (if (eq (process-status proc) 'open)
       (add-to-list 'mix-client-list proc)
     (rem-from-list 'mix-client-list proc)))
