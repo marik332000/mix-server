@@ -36,14 +36,14 @@
   "Register this MIX server with the MIX master."
   (process-send-string
    (make-network-process
-    :name     "mix-master-report"
+    :name     "mix-master-register"
     :host     mix-master-host
     :service  mix-master-port
     :family   'ipv4
     :type     'datagram)
    (mix-build-register-message))
-  (if (process-status "mix-master-report")
-      (delete-process "mix-master-report")))
+  (if (process-status "mix-master-register")
+      (delete-process "mix-master-register")))
 
 ;; Ping handler
 
@@ -67,7 +67,8 @@
 (defun mix-ping-stop ()
   "Stop the MIX ping server."
   (interactive)
-  (if (process-status "mix-ping") (delete-process "mix-ping")))
+  (when (process-status "mix-ping")
+    (delete-process "mix-ping")))
 
 ;; Echo client functions
 
