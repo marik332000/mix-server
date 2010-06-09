@@ -11,20 +11,26 @@
 
 ;; Configuration
 
+(defvar mix-port 33335
+  "MIX server port number.")
+
+(defvar mix-name "Emacs-MIX"
+  "Name of the MIX server.")
+
 (defvar mix-master-host "63.197.64.78"
   "Host address of the MIX master server.")
 
 (defvar mix-master-port 21999
   "Port of the MIX master server.")
 
-(defvar mix-id (format "%04X%04X" (random (expt 2 16)) (random (expt 2 16)))
-  "Unique ID for this server.")
-
-(defvar mix-port 33335
-  "MIX server port number.")
-
-(defvar mix-name "Emacs-MIX"
-  "Name of the MIX server.")
+(defvar mix-id (substring (upcase (md5 (format "%s%s%s%s%s%s"
+					       (user-uid)
+					       (system-name)
+					       (user-full-name)
+					       (user-login-name)
+					       user-mail-address
+					       mix-port))) 0 7)
+  "Unique, but consistent, ID for this server.")
 
 ;; MIX master server functions (mix-register)
 
