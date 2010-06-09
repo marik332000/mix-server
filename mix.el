@@ -43,6 +43,7 @@
     :family   'ipv4
     :type     'datagram)
    (mix-build-register-message))
+  (mix-log "registered with master mix server\n")
   (if (process-status "mix-master-register")
       (delete-process "mix-master-register")))
 
@@ -61,6 +62,7 @@
 
 (defun mix-ping (proc data)
   "Respond with standard ping reply."
+  (mix-log (concat "PING\n"))
   (process-send-string proc
 		       (format "#name=%s //ID:%s //TM:%X //US:0.3.5\0"
 			       mix-name mix-id (float-time))))
@@ -112,8 +114,7 @@
 
 (defun mix-sentinel (proc stat)
   "Mix server's sentinel: called when status changes."
-  (mix-log (concat "mix: " (format-time-string "%Y %b %d %H:%M:%S")
-		   " (" (symbol-name (process-status proc)) ") " stat))
+  (mix-log (concat "(" (symbol-name (process-status proc)) ") " stat))
   (if (eq (process-status proc) 'open)
       (add-to-list 'mix-client-list proc)
     (rem-from-list 'mix-client-list proc)))
@@ -127,11 +128,18 @@
 
 (defun mix-datalog (data)
   "Write the packet to the data log."
-  (with-current-buffer (get-buffer-create "*mix-data*")
-    (goto-char (point-max))
-    (insert data "\n")))
+  (mix-log-string "*mix-data*" (concat data "\n")))
 
 (defun mix-log (string)
   "Write the status to the log."
-  (with-current-buffer (get-buffer-create "*mix*")
-    (insert string)))
+  (mix-log-string "*mix*"
+		  (concat (format-time-string "%Y %b %d %H:%M:%S")
+			  " - " string)))
+
+(defun mix-log-string (buffer-name string)
+  "Add a string to a log in a buffer."
+  (with-current-buffer (get-buffer-create buffer-name)
+    (toggle-read-only 1)
+    (let ((inhibit-read-only t))
+      (goto-char (point-max))
+      (insert string))))
