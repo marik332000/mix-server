@@ -20,7 +20,7 @@
 (defvar mix-master-host "63.197.64.78"
   "Host address of the MIX master server.")
 
-(defvar mix-master-port 21999
+(defvar mix-master-ports '(21999 22999 23999)
   "Port of the MIX master server.")
 
 (defvar mix-id (substring (upcase (md5 (format "%s%s%s%s%s%s"
@@ -41,17 +41,18 @@
 
 (defun mix-register ()
   "Register this MIX server with the MIX master."
-  (process-send-string
-   (make-network-process
-    :name     "mix-master-register"
-    :host     mix-master-host
-    :service  mix-master-port
-    :family   'ipv4
-    :type     'datagram)
-   (mix-build-register-message))
-  (mix-log "registered with master mix server\n")
-  (if (process-status "mix-master-register")
-      (delete-process "mix-master-register")))
+  (dolist (mix-master-port mix-master-ports)
+    (process-send-string
+     (make-network-process
+      :name     "mix-master-register"
+      :host     mix-master-host
+      :service  mix-master-port
+      :family   'ipv4
+      :type     'datagram)
+     (mix-build-register-message))
+    (mix-log (format "registered with master server %d\n" mix-master-port))
+    (if (process-status "mix-master-register")
+	(delete-process "mix-master-register"))))
 
 ;; Ping handler
 
