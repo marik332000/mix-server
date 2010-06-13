@@ -7,7 +7,6 @@
 ;;; TODO
 ;; * mix-unregister on mix-stop
 ;; * Figure out the meaning of the US and ID ping fields
-;; * Add support for the other two games
 
 ;; Configuration
 
