@@ -11,7 +11,7 @@
 
 ;; Configuration
 
-(defvar mix-port 33335
+(defvar mix-port 8888
   "MIX server port number.")
 
 (defvar mix-name "Emacs-MIX"
