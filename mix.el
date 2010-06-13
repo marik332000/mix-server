@@ -85,9 +85,6 @@
 (defvar mix-client-list '()
   "List of connected clients.")
 
-(defvar mix-timer nil
-  "The handle for the registration timer.")
-
 (defun rem-from-list (list el)
   "Opposite of add-to-list."
   (set list (remq el (symbol-value list))))
@@ -110,9 +107,7 @@
 (defun mix-stop ()
   "Stop the MIX server."
   (interactive)
-  (when mix-timer
-    (cancel-timer mix-timer)
-    (setq mix-timer nil))
+  (cancel-function-timers 'mix-register)
   (when (process-status "mix")
     (delete-process "mix"))
   (dolist (client mix-client-list)
