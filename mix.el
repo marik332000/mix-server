@@ -144,3 +144,5 @@
     (let ((inhibit-read-only t))
       (goto-char (point-max))
       (insert string))))
+
+(provide 'mix)
