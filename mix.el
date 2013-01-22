@@ -1,42 +1,54 @@
 ;;; mix.el --- MIX game server
-;;
-;; This MIX server register with the master MIX server to act as a
-;; public server. You will need to port forward both TCP and UDP on
-;; the port your server runs on for it to work properly.
-;;
-;;; TODO
-;; * mix-unregister on mix-stop
+
+;; This is free and unencumbered software released into the public domain.
+
+;;; Commentary:
+
+;; This MIX server will automatically register with the master MIX
+;; server to act as a public server. If behind NAT, you will need to
+;; port forward both TCP and UDP on the selected port your server.
+
+;; Start and stop the server with `mix-start' and `mix-stop'.
+
+;; TODO:
+
+;; * mix-unregister on `mix-stop'
 ;; * Figure out the meaning of the US and ID ping fields
 
-;; Configuration
+;;; Code:
 
-(defvar mix-port 8888
-  "MIX server port number.")
+(defgroup mix ()
+  "MIX game server for Synthetic Reality games."
+  :group 'games)
 
-(defvar mix-name "Emacs-MIX"
-  "Name of the MIX server.")
+(defcustom mix-port 8888
+  "MIX server port number."
+  :group 'mix
+  :type 'integer)
+
+(defcustom mix-name "Emacs-MIX"
+  "Name of the MIX server."
+  :group 'mix
+  :type 'string)
+
+;; Master server registration
 
 (defvar mix-master-host "63.197.64.78"
   "Host address of the MIX master server.")
 
 (defvar mix-master-ports '(21999 22999 23999)
-  "Port of the MIX master server.")
+  "Port of the MIX master server. The different ports are for each game.")
 
-(defvar mix-id (substring (upcase (md5 (format "%s%s%s%s%s%s"
-					       (user-uid)
-					       (system-name)
-					       (user-full-name)
-					       (user-login-name)
-					       user-mail-address
-					       mix-port))) 0 7)
-  "Unique, but consistent, ID for this server.")
-
-;; MIX master server functions (mix-register)
+(defun mix-make-id ()
+  "Compute a unique, consistent ID for this server."
+  (let ((uniq (format "%s%s%s%s%s%s" (user-uid) (system-name) (user-full-name)
+                      (user-login-name) user-mail-address mix-port)))
+    (substring (upcase (md5 uniq)) 0 7)))
 
 (defun mix-build-register-message ()
   "Generate packet for registering with the MIX master server."
   (format "!version=41252,nump=%d,id=%s,port=%d,name=%s\0"
-	  (length mix-client-list) mix-id mix-port mix-name))
+          (length mix-client-list) (mix-make-id) mix-port mix-name))
 
 (defun mix-register ()
   "Register this MIX server with the MIX master."
@@ -51,13 +63,12 @@
      (mix-build-register-message))
     (mix-log (format "registered with master server %d\n" mix-master-port))
     (if (process-status "mix-master-register")
-	(delete-process "mix-master-register"))))
+        (delete-process "mix-master-register"))))
 
 ;; Ping handler
 
 (defun mix-ping-start ()
   "Start the process that handles pings."
-  (interactive)
   (make-network-process
    :name     "mix-ping"
    :service  mix-port
@@ -69,13 +80,13 @@
 (defun mix-ping (proc data)
   "Respond with standard ping reply."
   (mix-log (concat "PING\n"))
-  (process-send-string proc
-		       (format "#name=%s //ID:%s //TM:%X //US:0.3.5\0"
-			       mix-name mix-id (float-time))))
+  (process-send-string
+   proc
+   (format "#name=%s //ID:%s //TM:%X //US:0.3.5\0"
+           mix-name (mix-make-id) (float-time))))
 
 (defun mix-ping-stop ()
   "Stop the MIX ping server."
-  (interactive)
   (when (process-status "mix-ping")
     (delete-process "mix-ping")))
 
@@ -84,10 +95,11 @@
 (defvar mix-client-list '()
   "List of connected clients.")
 
-(defun rem-from-list (list el)
+(defun mix--rem-from-list (list el)
   "Opposite of add-to-list."
   (set list (remq el (symbol-value list))))
 
+;;;###autoload
 (defun mix-start ()
   "Start the MIX server."
   (interactive)
@@ -103,6 +115,7 @@
   (mix-ping-start)
   (run-at-time 0 300 'mix-register))
 
+;;;###autoload
 (defun mix-stop ()
   "Stop the MIX server."
   (interactive)
@@ -118,7 +131,7 @@
   (mix-log (concat "(" (symbol-name (process-status proc)) ") " stat))
   (if (eq (process-status proc) 'open)
       (add-to-list 'mix-client-list proc)
-    (rem-from-list 'mix-client-list proc)))
+    (mix--rem-from-list 'mix-client-list proc)))
 
 (defun mix-filter (proc data)
   "Echo data in to all clients."
@@ -134,8 +147,8 @@
 (defun mix-log (string)
   "Write the status to the log."
   (mix-log-string "*mix*"
-		  (concat (format-time-string "%Y %b %d %H:%M:%S")
-			  " - " string)))
+                  (concat (format-time-string "%Y %b %d %H:%M:%S")
+                          " - " string)))
 
 (defun mix-log-string (buffer-name string)
   "Add a string to a log in a buffer."
@@ -146,3 +159,5 @@
       (insert string))))
 
 (provide 'mix)
+
+;;; mix.el ends here
