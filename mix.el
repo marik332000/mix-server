@@ -138,7 +138,8 @@
   (mix-datalog data)
   (dolist (client mix-client-list)
     (unless (eq client proc)
-      (process-send-string client data))))
+      (ignore-errors
+        (process-send-string client data)))))
 
 (defun mix-datalog (data)
   "Write the packet to the data log."
